@@ -28,6 +28,13 @@ def init_session_state():
         if key not in st.session_state:
             st.session_state[key] = value
 
+def mostrar_feedback(feedback, color="#EE82EE", font_size="20px"):
+    st.markdown(f"""
+        <div style='font-size: {font_size}; color: {color}; text-align: center; font-family: "Press Start 2P", sans-serif;'>
+            {feedback}
+        </div>
+    """, unsafe_allow_html=True)
+
 def main():
     st.title("Adivinhe o número!")
     init_session_state()
@@ -44,242 +51,294 @@ def main():
         mostrar_pantalla_jogador_adivinha()
 
 def mostrar_pantalla_nickname():
-    st.session_state.nickname = st.text_input("Digite seu nickname: ")
+    st.markdown("""
+        <div style='font-size: 28px; font-family: "Press Start 2P", sans-serif; color: #FFA500; text-align: center; margin-bottom: 20px;'>
+            Bem-vindo! Digite seu Nickname:
+        </div>
+    """, unsafe_allow_html=True)
+    st.session_state.nickname = st.text_input("", key="nickname_input", placeholder="Ex: Jogador123")
+
     if st.session_state.nickname:
         st.session_state.etapa = "escolha_modo"
         st.rerun()
 
 def mostrar_pantalla_escolha_modo():
-    st.write(f"Olá, {st.session_state.nickname}!")
+    st.markdown(f"""
+        <div style='font-size: 28px; font-family: "Press Start 2P", sans-serif; color: #FFA500; text-align: center; margin-bottom: 20px;'>
+            Olá, {st.session_state.nickname}!
+        </div>
+    """, unsafe_allow_html=True)
     
+    st.write("Escolha quem vai adivinhar o número:")
+
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Eu quero adivinhar"):
+        if st.button("Eu quero adivinhar", key="jogador_button"):
             st.session_state.quem_adivinha = "jogador"
             st.session_state.etapa = "escolha_dificuldade"
             st.rerun()
+
     with col2:
-        if st.button("A máquina adivinha"):
+        if st.button("A máquina adivinha", key="maquina_button"):
             st.session_state.quem_adivinha = "maquina"
             st.session_state.etapa = "escolha_dificuldade"
             st.rerun()
 
 def mostrar_pantalla_dificuldade():
+    st.markdown("""
+        <div style='font-size: 24px; font-family: "Press Start 2P", sans-serif; color: #FF6347; text-align: center; margin-bottom: 20px;'>
+            Escolha o nível de dificuldade:
+        </div>
+    """, unsafe_allow_html=True)
+
     st.session_state.nivel = st.radio(
         "Escolha o nível de dificuldade:",
-        ("1 (normal)", "2 (hard)"),
-        key="nivel_jogo"
+        ("Normal", "Hard"),
+        key="nivel_jogo",
+        index=0,
+        help="Escolha o nível que deseja jogar!"
     )
-    
+
     if st.button("Continuar", key="btn_escolha_dificuldade"):
         st.session_state.control = 0
         st.session_state.tentativas = 0
         st.session_state.minimo = 1
-        st.session_state.maximo = 100 if st.session_state.nivel == "1 (normal)" else 1000
+        st.session_state.maximo = 100 if st.session_state.nivel == "Normal" else 1000
         st.session_state.juego_terminado = False
-        
+
         if st.session_state.quem_adivinha == "maquina":
             st.session_state.etapa = "maquina_adivinha"
         else:
-            # Generar nuevo número para que adivine el jugador
-            if st.session_state.nivel == "1 (normal)":
+            # Generar un nuevo número para que adivine el jugador
+            if st.session_state.nivel == "Normal":
                 st.session_state.num_maquina = randint(1, 100)
             else:
                 st.session_state.num_maquina = randint(1, 1000)
             st.session_state.etapa = "jogador_adivinha"
+        
         st.rerun()
 
 def mostrar_pantalla_maquina_adivinha():
-    if st.session_state.nivel == "1 (normal)":
+    if st.session_state.nivel == "Normal":
         adivinhar_numero_soft()
     else:
         adivinhar_numero_hard()
 
 def adivinhar_numero_soft():
     if not st.session_state.juego_terminado:
-        # Solo calculamos un nuevo chute si es el primer intento o si se ha cambiado el rango
         if st.session_state.tentativas == 0 or st.session_state.nuevo_intento:
             st.session_state.chute = (st.session_state.minimo + st.session_state.maximo) // 2
             st.session_state.tentativas += 1
             st.session_state.nuevo_intento = False
 
-        # Mostramos la cantidad de intentos
-        st.write(f"Tentativa {st.session_state.tentativas}/7")
-        st.write(f"O número que você pensou é maior (M), menor (m) ou igual (=) a {st.session_state.chute}?")
+        st.markdown(f"""
+            <div style='font-size: 22px; font-family: "Press Start 2P", sans-serif; color: #32CD32; text-align: center;'>
+                Tentativa {st.session_state.tentativas}/7
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+    O número que você pensou é maior, menor ou igual a <span style='color: #FF6347; font-size: 20px; font-weight: bold;'>{st.session_state.chute}</span>?
+""", unsafe_allow_html=True)
 
-        # Botones de respuesta
+
         col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("Maior", key=f"maior_{st.session_state.tentativas}"):
-
-                # Actualizamos el mínimo si la respuesta es "Maior"
                 st.session_state.minimo = st.session_state.chute + 1
                 st.session_state.nuevo_intento = True
                 st.rerun()
 
         with col2:
             if st.button("Igual", key=f"igual_{st.session_state.tentativas}"):
-
-                # Si el número es igual, el juego termina
                 st.success(f"Adivinhei o número em {st.session_state.tentativas} tentativas!")
-                st.session_state.juego_terminado = True  # Se marca como terminado
+                st.session_state.juego_terminado = True
                 st.session_state.nuevo_intento = False
 
         with col3:
             if st.button("Menor", key=f"menor_{st.session_state.tentativas}"):
-
-                # Actualizamos el máximo si la respuesta es "Menor"
                 st.session_state.maximo = st.session_state.chute - 1
                 st.session_state.nuevo_intento = True
                 st.rerun()
 
-        # Verificación de intentos agotados (si se alcanzan 7 intentos sin adivinar)
         if st.session_state.tentativas >= 7 and not st.session_state.juego_terminado:
             st.error("Não consegui adivinhar o número em 7 tentativas. Você venceu!")
             st.session_state.juego_terminado = True
 
-        # Si el juego ha terminado, preguntar si quiere jugar nuevamente
         if st.session_state.juego_terminado:
             st.write("Obrigado por jogar! Pressione F5 para reiniciar o jogo.")
-            
 
 def adivinhar_numero_hard():
     if not st.session_state.juego_terminado:
-        # Solo calculamos un nuevo chute si es el primer intento o si se ha cambiado el rango
         if st.session_state.tentativas == 0 or st.session_state.nuevo_intento:
             st.session_state.chute = (st.session_state.minimo + st.session_state.maximo) // 2
             st.session_state.tentativas += 1
             st.session_state.nuevo_intento = False
 
-        # Mostramos la cantidad de intentos
-        st.write(f"Tentativa {st.session_state.tentativas}/10")
-        st.write(f"O número que você pensou é maior (M), menor (m) ou igual (=) a {st.session_state.chute}?")
+        st.markdown(f"""
+            <div style='font-size: 22px; font-family: "Press Start 2P", sans-serif; color: #FFD700; text-align: center;'>
+                Tentativa {st.session_state.tentativas}/10
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+    O número que você pensou é maior, menor ou igual a <span style='color: #FF6347; font-size: 20px; font-weight: bold;'>{st.session_state.chute}</span>?
+""", unsafe_allow_html=True)
 
-        # Botones de respuesta
+
         col1, col2, col3 = st.columns(3)
         with col1:
             if st.button("Maior", key=f"maior_{st.session_state.tentativas}"):
-
-                # Actualizamos el mínimo si la respuesta es "Maior"
                 st.session_state.minimo = st.session_state.chute + 1
                 st.session_state.nuevo_intento = True
                 st.rerun()
 
         with col2:
             if st.button("Igual", key=f"igual_{st.session_state.tentativas}"):
-
-                # Si el número es igual, el juego termina
                 st.success(f"Adivinhei o número em {st.session_state.tentativas} tentativas!")
-                st.session_state.juego_terminado = True  # Se marca como terminado
+                st.session_state.juego_terminado = True
                 st.session_state.nuevo_intento = False
 
         with col3:
             if st.button("Menor", key=f"menor_{st.session_state.tentativas}"):
-
-                # Actualizamos el máximo si la respuesta es "Menor"
                 st.session_state.maximo = st.session_state.chute - 1
                 st.session_state.nuevo_intento = True
                 st.rerun()
 
-        # Verificación de intentos agotados (si se alcanzan 10 intentos sin adivinar)
         if st.session_state.tentativas >= 10 and not st.session_state.juego_terminado:
             st.error("Não consegui adivinhar o número em 10 tentativas. Você venceu!")
             st.session_state.juego_terminado = True
 
-        # Si el juego ha terminado, preguntar si quiere jugar nuevamente
         if st.session_state.juego_terminado:
             st.write("Obrigado por jogar! Pressione F5 para reiniciar o jogo.")
+
             
 
 def mostrar_pantalla_jogador_adivinha():
-    if st.session_state.nivel == "1 (normal)":
+    if st.session_state.nivel == "Normal":
         conversa_adivinha_normal()
     else:
         conversa_adivinha_hard()
 
+if "chute_normal" not in st.session_state:
+    st.session_state.chute_normal = None
+if "chute_hard" not in st.session_state:
+    st.session_state.chute_hard = None
+
 def conversa_adivinha_normal():
     if not st.session_state.juego_terminado:
-        st.write("Escolheu modo normal, mamão com açúcar!")
-        st.write("Faça seu melhor chute e adivinhe meu número!")
+        # Mensaje de introducción, centrado y con fuente vintage de jueguito
+        st.markdown("""
+            <div style='font-size: 24px; font-family: "Press Start 2P", sans-serif; color: #FFA500; text-align: center; margin-bottom: 20px;'>
+                Escolheu modo normal, mamão com açúcar!
+            </div>
+        """, unsafe_allow_html=True)
 
-        if st.session_state.feedback:
-            st.write(st.session_state.feedback)
-
-        # Calculamos los intentos restantes
+        # Intentos restantes: texto centrado y en verde
         tentativas_restantes = 7 - st.session_state.tentativas
-        st.write(f"Você tem {tentativas_restantes} tentativas restantes.")
+        st.markdown(f"""
+            <div style='font-size: 18px; font-weight: bold; color: #4CAF50; margin-bottom: 10px; text-align: center;'>
+                Você tem <strong>{tentativas_restantes}</strong> tentativas para adivinhar restantes.
+            </div>
+        """, unsafe_allow_html=True)
 
+
+        # Campo de entrada del número
         chute = st.number_input(
-            "Digite seu chute (1-100):",
+            "Meu número é entre 1 e 100:",
             min_value=1,
             max_value=100,
             key="chute_normal",
-            value=1  # Valor inicial ajustado a 1
+            value=st.session_state.chute_normal if 'chute_normal' in st.session_state else None,  # Usar None para vaciar
+            on_change=handle_chute  # Llamamos a la función para manejar el intento
         )
 
+        # Crear un botón para enviar el número
         if st.button("Enviar", key="enviar_normal"):
-            if st.session_state.tentativas < 7 and not st.session_state.juego_terminado:  # Solo incrementar si no se alcanzó el límite
-                st.session_state.tentativas += 1
+            handle_chute()  # Llamamos al mismo manejador cuando presionamos el botón
 
-                if chute == st.session_state.num_maquina:
-                    st.success(f"Parabéns {st.session_state.nickname}! Adivinhou o número em {st.session_state.tentativas} tentativas!")
-                    st.session_state.juego_terminado = True
-                elif chute < st.session_state.num_maquina:
-                    st.session_state.feedback = "Não, é maior!"
-                else:
-                    st.session_state.feedback = "Não, é menor!"
+        # Feedback: mensaje centrado y en amarillo brillante
+        if st.session_state.feedback:
+            st.markdown(f"""
+                <div style='font-size: 20px; color: #EE82EE; text-align: center; font-family: "Press Start 2P", sans-serif;'>
+                    {st.session_state.feedback}
+                </div>
+            """, unsafe_allow_html=True)
 
-                # Verificar si el jugador agotó los intentos
-                if st.session_state.tentativas >= 7 and not st.session_state.juego_terminado:
-                    st.error(f"Tentativas esgotadas, meu número era {st.session_state.num_maquina}, jogue de novo!")
-                    st.session_state.juego_terminado = True
-
-            if st.session_state.juego_terminado:
-                st.write("Obrigado por jogar! Pressione F5 para reiniciar o jogo.")
                 
+def handle_chute():
+    # Verifica si estamos en el modo normal o hard
+    if st.session_state.nivel == "Normal":
+        chute = st.session_state.chute_normal  # Para el modo normal
+    else:
+        chute = st.session_state.chute_hard  # Para el modo hard
+
+    # Solo procesamos si el número no es None y si no hemos agotado los intentos
+    if chute is not None:
+        st.session_state.tentativas += 1
+
+        # Compara el número ingresado con el número de la máquina
+        if chute == st.session_state.num_maquina:
+            st.success(f"Parabéns {st.session_state.nickname}! Adivinhou o número em {st.session_state.tentativas} tentativas!")
+            st.session_state.juego_terminado = True
+        elif chute < st.session_state.num_maquina:
+            st.session_state.feedback = (f"Não é {chute}, meu número é maior!")  # Feedback actualizado
+        else:
+            st.session_state.feedback = (f"Não é {chute}, meu número é menor!")  # Feedback actualizado
+
+        # Verificar si el jugador agotó los intentos
+        if st.session_state.tentativas >= (7 if st.session_state.nivel == "Normal" else 10) and not st.session_state.juego_terminado:
+            st.error(f"Tentativas esgotadas, meu número era {st.session_state.num_maquina}, jogue de novo!")
+            st.session_state.juego_terminado = True
+
+        # Borrar el número ingresado (esto lo hacemos estableciendo el valor a None)
+        if st.session_state.nivel == "Normal":
+            st.session_state.chute_normal = None  # Para el modo normal
+        else:
+            st.session_state.chute_hard = None  # Para el modo hard
+
+    if st.session_state.juego_terminado:
+        st.write("Obrigado por jogar! Pressione F5 para reiniciar o jogo.")
+
 
 def conversa_adivinha_hard():
     if not st.session_state.juego_terminado:
-        st.write("Escolheu modo hard, os bravos é que comem a sopa... boa sorte!")
-        st.write("Faça seu melhor chute e adivinhe meu número!")
+        # Mensaje de introducción, centrado y con fuente vintage de jueguito
+        st.markdown("""
+            <div style='font-size: 24px; font-family: "Press Start 2P", sans-serif; color: #FFA500; text-align: center; margin-bottom: 20px;'>
+                Escolheu modo hard, só os bravos que comem a sopa!
+            </div>
+        """, unsafe_allow_html=True)
 
-        if st.session_state.feedback:
-            st.write(st.session_state.feedback)
-
-        # Calculamos los intentos restantes
+        # Intentos restantes: texto centrado y en verde
         tentativas_restantes = 10 - st.session_state.tentativas
-        st.write(f"Você tem {tentativas_restantes} tentativas restantes.")
+        st.markdown(f"""
+            <div style='font-size: 18px; font-weight: bold; color: #4CAF50; margin-bottom: 10px; text-align: center;'>
+                Você tem <strong>{tentativas_restantes}</strong> tentativas para adivinhar restantes.
+            </div>
+        """, unsafe_allow_html=True)
 
+        # Campo de entrada del número
         chute = st.number_input(
-            "Digite seu chute (1-1000):",
+            "Meu número é entre 1 e 1000:",
             min_value=1,
             max_value=1000,
             key="chute_hard",
-            value=1  # Valor inicial ajustado a 1
+            value=st.session_state.chute_hard if 'chute_hard' in st.session_state else None,  # Usar None para vaciar
+            on_change=handle_chute  # Llamamos a la función para manejar el intento
         )
 
+        # Crear un botón para enviar el número
         if st.button("Enviar", key="enviar_hard"):
-            if st.session_state.tentativas < 10 and not st.session_state.juego_terminado:  # Solo incrementar si no se alcanzó el límite
-                st.session_state.tentativas += 1
+            handle_chute()  # Llamamos al mismo manejador cuando presionamos el botón
 
-                if chute == st.session_state.num_maquina:
-                    st.success(f"Parabéns {st.session_state.nickname}! Adivinhou o número em {st.session_state.tentativas} tentativas!")
-                    st.session_state.juego_terminado = True
-                elif chute < st.session_state.num_maquina:
-                    st.session_state.feedback = "Não, é maior!"
-                else:
-                    st.session_state.feedback = "Não, é menor!"
-
-                # Verificar si el jugador agotó los intentos
-                if st.session_state.tentativas >= 10 and not st.session_state.juego_terminado:
-                    st.error(f"Tentativas esgotadas, meu número era {st.session_state.num_maquina}, jogue de novo!")
-                    st.session_state.juego_terminado = True
-
-            if st.session_state.juego_terminado:
-                st.write("Obrigado por jogar! Pressione F5 para reiniciar o jogo.")
-                
-            else:
-                st.rerun()
+        # Feedback: mensaje centrado y en amarillo brillante
+        if st.session_state.feedback:
+            st.markdown(f"""
+                <div style='font-size: 20px; color: #EE82EE; text-align: center; font-family: "Press Start 2P", sans-serif;'>
+                    {st.session_state.feedback}
+                </div>
+            """, unsafe_allow_html=True)
 
 
 
