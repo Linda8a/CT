@@ -275,7 +275,8 @@ def handle_chute():
 
     # Solo procesamos si el número no es None y si no hemos agotado los intentos
     if chute is not None:
-        st.session_state.tentativas += 1
+        st.session_state.tentativas += 1  # Incrementa el número de intentos
+        st.write(f"Tentativas feitas: {st.session_state.tentativas}")  # Depuración
 
         # Compara el número ingresado con el número de la máquina
         if chute == st.session_state.num_maquina:
@@ -299,6 +300,7 @@ def handle_chute():
 
     if st.session_state.juego_terminado:
         st.write("Obrigado por jogar! Pressione F5 para reiniciar o jogo.")
+
 
 
 def conversa_adivinha_hard():
